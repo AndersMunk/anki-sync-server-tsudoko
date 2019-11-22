@@ -488,7 +488,7 @@ class CollectionHandler(RestHandlerBase):
     #
 
     def find_cards(self, col, req):
-###        from AnkiServer.find import Finder
+# TODO:        from AnkiServer.find import Finder
 
         query = req.data.get('query', '')
         order = req.data.get('order', False)
@@ -747,7 +747,7 @@ class ImportExportHandler(RestHandlerBase):
     def _get_importer_class(self, data):
         filetype = data['filetype']
 
-###        from AnkiServer.importer import get_importer_class
+# TODO:        from AnkiServer.importer import get_importer_class
         importer_class = get_importer_class(filetype)
         if importer_class is None:
             raise HTTPBadRequest("Unknown filetype '%s'" % filetype)
@@ -755,7 +755,7 @@ class ImportExportHandler(RestHandlerBase):
         return importer_class
 
     def import_file(self, col, req):
-###        import AnkiServer.importer
+#  TODO:       import AnkiServer.importer
         import tempfile
 
         # get the importer class
@@ -771,7 +771,7 @@ class ImportExportHandler(RestHandlerBase):
                 path = fd.name
                 fd.write(filedata)
 
-##            AnkiServer.importer.import_file(importer_class, col, path)
+# TODO:          AnkiServer.importer.import_file(importer_class, col, path)
         finally:
             if path is not None:
                 os.unlink(path)
@@ -991,7 +991,7 @@ def make_app(global_conf, **local_conf):
     # TODO: we should setup the default language from conf!
 
     # setup the logger
- ##   from AnkiServer.utils import setup_logging
+ # TODO:  from AnkiServer.utils import setup_logging
     setup_logging(local_conf.get('logging.config_file'))
 
     return RestApp(
