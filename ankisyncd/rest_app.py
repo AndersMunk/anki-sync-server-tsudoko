@@ -14,27 +14,55 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gzip
+import hashlib
+import io
+import json
+import logging
+import os
+import random
+import re
+import string
+import sys
+import time
+import unicodedata
+import zipfile
+from configparser import ConfigParser
+from sqlite3 import dbapi2 as sqlite
+
+from webob import Response
 from webob.dec import wsgify
 from webob.exc import *
-from webob import Response
-
+#import in the code above from the sync_app:
+#from webob.dec import wsgify
+#from webob.exc import *
+#from webob import Response
 #from pprint import pprint
+#try:
+#    import simplejson as json
+#    from simplejson import JSONDecodeError
+#except ImportError:
+#    import json
+#    JSONDecodeError = ValueError
+#import os, logging
 
-try:
-    import simplejson as json
-    from simplejson import JSONDecodeError
-except ImportError:
-    import json
-    JSONDecodeError = ValueError
+#code under can hopefully replace this - import anki.consts
+from anki.consts import SYNC_VER, SYNC_ZIP_SIZE, SYNC_ZIP_COUNT
+from anki.consts import REM_CARD, REM_NOTE
 
-import os, logging
-
-import anki.consts
 import anki.lang
 from anki.lang import _ as t
-from anki.utils import intTime
+#included in the code from sync_app below - from anki.utils import intTime
 
-import AnkiServer
+#code from the sync_app
+import anki.db
+import anki.sync
+import anki.utils
+
+#code under can hopefully replace this - import AnkiServer
+from ankisyncd.users import get_user_manager
+from ankisyncd.sessions import get_session_manager
+from ankisyncd.full_sync import get_full_sync_manager
 
 __all__ = ['RestApp', 'RestHandlerBase', 'noReturnValue']
 
@@ -75,7 +103,7 @@ class RestApp(object):
     handler_types = ['collection', ['model', 'note', 'deck', 'card']]
 
     def __init__(self, data_root, **kw):
-        from AnkiServer.threading import getCollectionManager
+        from ankisyncd.thread import get_collection_manager
 
         self.data_root = os.path.abspath(data_root)
         self.allowed_hosts = kw.get('allowed_hosts', '*')
@@ -86,7 +114,7 @@ class RestApp(object):
         if kw.get('collection_manager') is not None:
             self.collection_manager = kw['collection_manager']
         else:
-            self.collection_manager = getCollectionManager()
+            self.collection_manager = get_Collection_Manager()
 
         self.handlers = {}
         for type_list in self.handler_types:
@@ -460,7 +488,7 @@ class CollectionHandler(RestHandlerBase):
     #
 
     def find_cards(self, col, req):
-        from AnkiServer.find import Finder
+###        from AnkiServer.find import Finder
 
         query = req.data.get('query', '')
         order = req.data.get('order', False)
@@ -719,7 +747,7 @@ class ImportExportHandler(RestHandlerBase):
     def _get_importer_class(self, data):
         filetype = data['filetype']
 
-        from AnkiServer.importer import get_importer_class
+###        from AnkiServer.importer import get_importer_class
         importer_class = get_importer_class(filetype)
         if importer_class is None:
             raise HTTPBadRequest("Unknown filetype '%s'" % filetype)
@@ -727,7 +755,7 @@ class ImportExportHandler(RestHandlerBase):
         return importer_class
 
     def import_file(self, col, req):
-        import AnkiServer.importer
+###        import AnkiServer.importer
         import tempfile
 
         # get the importer class
@@ -743,7 +771,7 @@ class ImportExportHandler(RestHandlerBase):
                 path = fd.name
                 fd.write(filedata)
 
-            AnkiServer.importer.import_file(importer_class, col, path)
+##            AnkiServer.importer.import_file(importer_class, col, path)
         finally:
             if path is not None:
                 os.unlink(path)
@@ -963,7 +991,7 @@ def make_app(global_conf, **local_conf):
     # TODO: we should setup the default language from conf!
 
     # setup the logger
-    from AnkiServer.utils import setup_logging
+ ##   from AnkiServer.utils import setup_logging
     setup_logging(local_conf.get('logging.config_file'))
 
     return RestApp(
